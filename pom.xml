@@ -33,12 +33,12 @@
     <modules>
         <module>api</module>
         <module>core</module>
-        <module>v1_8_R3</module>
-        <module>v1_12_R1</module>
-        <module>v1_14_R1</module>
-        <module>v1_16_R3</module>
-        <module>v1_17_R1</module>
-        <module>v1_19_R1</module>
+<!--        <module>v1_8_R3</module>-->
+<!--        <module>v1_12_R1</module>-->
+<!--        <module>v1_14_R1</module>-->
+<!--        <module>v1_16_R3</module>-->
+<!--        <module>v1_17_R1</module>-->
+<!--        <module>v1_19_R1</module>-->
         <module>v1_21_R1</module>
     </modules>
 
