@@ -1,17 +1,14 @@
 package com.example.playerdatasync.listeners;
 
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.inventory.ItemStack;
 
 import com.example.playerdatasync.core.PlayerDataSync;
 import com.example.playerdatasync.database.DatabaseManager;
 import com.example.playerdatasync.managers.MessageManager;
-import com.example.playerdatasync.utils.SchedulerUtils;
 
 /**
  * Handles server switch requests that originate from in-game commands.
@@ -70,34 +67,6 @@ public class ServerSwitchListener implements Listener {
             player.sendMessage(messageManager.get("prefix") + " " + messageManager.get("server_switch_save"));
         }
 
-        SchedulerUtils.runTaskAsync(plugin, () -> {
-            boolean saveSuccessful = databaseManager.savePlayer(player);
-
-            SchedulerUtils.runTask(plugin, player, () -> {
-                if (!player.isOnline()) {
-                    return;
-                }
-
-                if (saveSuccessful) {
-                    if (plugin.getConfigManager() != null && plugin.getConfigManager().shouldShowSyncMessages() 
-                        && player.hasPermission("playerdatasync.message.show.saving")) {
-                        player.sendMessage(messageManager.get("prefix") + " " + messageManager.get("server_switch_saved"));
-                    }
-
-                    player.getInventory().clear();
-                    player.getInventory().setArmorContents(new ItemStack[player.getInventory().getArmorContents().length]);
-                    if (plugin.getNmsHandler() != null) {
-                        plugin.getNmsHandler().setItemInOffHand(player, null);
-                    }
-                    player.updateInventory();
-                } else if (plugin.getConfigManager() != null && plugin.getConfigManager().shouldShowSyncMessages() 
-                    && player.hasPermission("playerdatasync.message.show.errors")) {
-                    player.sendMessage(messageManager.get("prefix") + " "
-                        + messageManager.get("sync_failed").replace("{error}", "Unable to save data before server switch."));
-                }
-
-                plugin.connectPlayerToServer(player, targetServer);
-            });
-        });
+        plugin.saveAndConnect(player, targetServer);
     }
 }

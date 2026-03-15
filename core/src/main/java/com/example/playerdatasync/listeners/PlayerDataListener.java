@@ -1,6 +1,5 @@
 package com.example.playerdatasync.listeners;
 
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -22,7 +21,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.example.playerdatasync.core.PlayerDataSync;
 import com.example.playerdatasync.database.DatabaseManager;
-import com.example.playerdatasync.nms.NMSHandler;
 import com.example.playerdatasync.managers.MessageManager;
 import com.example.playerdatasync.utils.SchedulerUtils;
 

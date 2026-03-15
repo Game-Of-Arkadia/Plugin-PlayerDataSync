@@ -1,13 +1,15 @@
 package com.example.playerdatasync.core;
 
+import com.example.playerdatasync.PlayerDataSyncApi;
+import com.example.playerdatasync.PlayerDataSyncPlugin;
 import com.example.playerdatasync.managers.*;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
-import org.bstats.bukkit.Metrics;
 import net.milkbowl.vault.economy.Economy;
 
 import com.example.playerdatasync.database.ConnectionPool;
@@ -36,7 +38,7 @@ import java.util.Map;
 import java.util.StringJoiner;
 import java.util.logging.Level;
 
-public class PlayerDataSync extends JavaPlugin {
+public class PlayerDataSync extends JavaPlugin implements PlayerDataSyncPlugin {
     private Connection connection;
     private ConnectionPool connectionPool;
     private String databaseType;
@@ -82,6 +84,11 @@ public class PlayerDataSync extends JavaPlugin {
     private FastStatsManager fastStatsManager;
     private String nmsVersionString = "Unknown";
     private long lastSaveDurationMs = 0;
+
+    @Override
+    public void onLoad() {
+        PlayerDataSyncApi.provide(this);
+    }
 
     @Override
     public void onEnable() {
@@ -925,6 +932,38 @@ public class PlayerDataSync extends JavaPlugin {
         triggerEconomySync(player);
     }
 
+    public void saveAndConnect(Player player, String server) {
+        SchedulerUtils.runTaskAsync(this, () -> {
+            boolean saveSuccessful = databaseManager.savePlayer(player);
+
+            SchedulerUtils.runTask(this, player, () -> {
+                if (!player.isOnline()) {
+                    return;
+                }
+
+                if (saveSuccessful) {
+                    if (this.getConfigManager() != null && this.getConfigManager().shouldShowSyncMessages()
+                        && player.hasPermission("playerdatasync.message.show.saving")) {
+                        player.sendMessage(messageManager.get("prefix") + " " + messageManager.get("server_switch_saved"));
+                    }
+
+                    player.getInventory().clear();
+                    player.getInventory().setArmorContents(new ItemStack[player.getInventory().getArmorContents().length]);
+                    if (this.getNmsHandler() != null) {
+                        this.getNmsHandler().setItemInOffHand(player, null);
+                    }
+                    player.updateInventory();
+                } else if (this.getConfigManager() != null && this.getConfigManager().shouldShowSyncMessages()
+                    && player.hasPermission("playerdatasync.message.show.errors")) {
+                    player.sendMessage(messageManager.get("prefix") + " "
+                        + messageManager.get("sync_failed").replace("{error}", "Unable to save data before server switch."));
+                }
+
+                connectPlayerToServer(player, server);
+            });
+        });
+    }
+
     public void connectPlayerToServer(Player player, String targetServer) {
         if (!bungeecordIntegrationEnabled) {
             getLogger().warning("Attempted to send player " + player.getName()
@@ -974,25 +1013,7 @@ public class PlayerDataSync extends JavaPlugin {
             String versionInfo = "";
 
             // Check for supported versions
-            if (com.example.playerdatasync.utils.VersionCompatibility.isVersion1_8()) {
-                isSupportedVersion = true;
-                versionInfo = "Minecraft 1.8 - Full compatibility confirmed";
-            } else if (com.example.playerdatasync.utils.VersionCompatibility.isVersion1_9_to_1_11()) {
-                isSupportedVersion = true;
-                versionInfo = "Minecraft 1.9-1.11 - Full compatibility confirmed";
-            } else if (com.example.playerdatasync.utils.VersionCompatibility.isVersion1_12()) {
-                isSupportedVersion = true;
-                versionInfo = "Minecraft 1.12 - Full compatibility confirmed";
-            } else if (com.example.playerdatasync.utils.VersionCompatibility.isVersion1_13_to_1_16()) {
-                isSupportedVersion = true;
-                versionInfo = "Minecraft 1.13-1.16 - Full compatibility confirmed";
-            } else if (com.example.playerdatasync.utils.VersionCompatibility.isVersion1_17()) {
-                isSupportedVersion = true;
-                versionInfo = "Minecraft 1.17 - Full compatibility confirmed";
-            } else if (com.example.playerdatasync.utils.VersionCompatibility.isVersion1_18_to_1_20()) {
-                isSupportedVersion = true;
-                versionInfo = "Minecraft 1.18-1.20 - Full compatibility confirmed";
-            } else if (com.example.playerdatasync.utils.VersionCompatibility.isVersion1_21_Plus()) {
+            if (com.example.playerdatasync.utils.VersionCompatibility.isVersion1_21_Plus()) {
                 isSupportedVersion = true;
                 versionInfo = "Minecraft 1.21+ - Full compatibility confirmed";
             }
@@ -1241,5 +1262,10 @@ public class PlayerDataSync extends JavaPlugin {
 
     public boolean isPerformanceLoggingEnabled() {
         return configManager != null && configManager.isPerformanceLoggingEnabled();
+    }
+
+    @Override
+    public void transfertPlayer(Player player, String servername) {
+        saveAndConnect(player, servername);
     }
 }

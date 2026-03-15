@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.example</groupId>
         <artifactId>PlayerDataSync-Parent</artifactId>
-        <version>26.3.5-SNAPSHOT</version>
+        <version>27.0.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>PlayerDataSync-API</artifactId>
